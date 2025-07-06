@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 import {
   Building2,
   Users,
@@ -13,6 +15,7 @@ import {
   Linkedin,
   Facebook,
   Loader2,
+  Download,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -30,6 +33,12 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 import { createStrategy } from "./actions";
 import type { GenerateSocialMediaStrategyOutput } from "@/ai/flows/generate-social-media-strategy";
@@ -70,8 +79,10 @@ type FormData = z.infer<typeof formSchema>;
 
 export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
   const [strategyOutput, setStrategyOutput] = useState<GenerateSocialMediaStrategyOutput | null>(null);
   const { toast } = useToast();
+  const resultsRef = useRef<HTMLDivElement>(null);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -102,6 +113,59 @@ export default function Home() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleDownloadPdf = () => {
+    const input = resultsRef.current;
+    if (!input) return;
+
+    setIsDownloading(true);
+
+    const htmlEl = document.documentElement;
+    const wasDark = htmlEl.classList.contains('dark');
+    if (wasDark) {
+        htmlEl.classList.remove('dark');
+    }
+
+    setTimeout(() => {
+        html2canvas(input, { scale: 2, windowWidth: input.scrollWidth, windowHeight: input.scrollHeight }).then(canvas => {
+            const imgData = canvas.toDataURL('image/png');
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const imgWidth = 210;
+            const pageHeight = 297;
+            const imgHeight = canvas.height * imgWidth / canvas.width;
+            let heightLeft = imgHeight;
+            let position = 0;
+
+            pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+            heightLeft -= pageHeight;
+
+            while (heightLeft >= 0) {
+                position = heightLeft - imgHeight;
+                pdf.addPage();
+                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
+            }
+
+            pdf.save('social-media-strategy.pdf');
+
+            if (wasDark) {
+                htmlEl.classList.add('dark');
+            }
+            setIsDownloading(false);
+        }).catch(err => {
+            console.error(err);
+            if (wasDark) {
+                htmlEl.classList.add('dark');
+            }
+            setIsDownloading(false);
+            toast({
+                variant: "destructive",
+                title: "PDF Download Failed",
+                description: "An error occurred while generating the PDF.",
+            });
+        });
+    }, 250);
   };
 
   const getPlatformIcon = (platform: string) => {
@@ -239,7 +303,16 @@ export default function Home() {
 
         <div className="lg:col-span-3">
           <div className="space-y-6 sticky top-12">
-            <h2 className="text-3xl font-bold tracking-tight">2. Your AI-Generated Strategies</h2>
+            <div className="flex justify-between items-center">
+              <h2 className="text-3xl font-bold tracking-tight">2. Your AI-Generated Strategies</h2>
+              {strategyOutput && strategyOutput.strategies.length > 0 && (
+                <Button onClick={handleDownloadPdf} variant="outline" disabled={isDownloading}>
+                  {isDownloading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                  {isDownloading ? 'Downloading...' : 'Download PDF'}
+                </Button>
+              )}
+            </div>
+
             {isLoading && (
               <div className="space-y-4">
                 {[...Array(form.getValues("platforms").length || 2)].map((_, i) => (
@@ -257,23 +330,44 @@ export default function Home() {
               </div>
             )}
             
-            {strategyOutput && strategyOutput.strategies.length > 0 && (
-              <div className="space-y-4 animate-in fade-in-50 duration-500">
-                {strategyOutput.strategies.map((s, index) => (
-                  <Card key={index} className="shadow-lg">
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-3 text-2xl text-primary">
-                        {getPlatformIcon(s.platform)}
-                        <span className="capitalize">{s.platform === 'x' ? 'X (Twitter)' : s.platform}</span>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="whitespace-pre-wrap text-base text-foreground/90">{s.strategy}</p>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
+            <div ref={resultsRef} className="bg-background">
+              {strategyOutput && strategyOutput.strategies.length > 0 && (
+                <div className="space-y-4 animate-in fade-in-50 duration-500 p-4">
+                  {strategyOutput.strategies.map((s, index) => (
+                    <Card key={index} className="shadow-lg">
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-3 text-2xl text-primary">
+                          {getPlatformIcon(s.platform)}
+                          <span className="capitalize">{s.platform === 'x' ? 'X (Twitter)' : s.platform}</span>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <Accordion type="single" collapsible defaultValue="strategy" className="w-full">
+                          <AccordionItem value="strategy">
+                            <AccordionTrigger className="text-lg font-semibold">Strategy</AccordionTrigger>
+                            <AccordionContent className="whitespace-pre-wrap text-base text-foreground/90 pt-2">
+                              {s.strategy}
+                            </AccordionContent>
+                          </AccordionItem>
+                          <AccordionItem value="content-plan">
+                            <AccordionTrigger className="text-lg font-semibold">Weekly Content Plan</AccordionTrigger>
+                            <AccordionContent className="whitespace-pre-wrap text-base text-foreground/90 pt-2">
+                              {s.weeklyContentPlan}
+                            </AccordionContent>
+                          </AccordionItem>
+                          <AccordionItem value="algorithm">
+                            <AccordionTrigger className="text-lg font-semibold">Algorithm Insights</AccordionTrigger>
+                            <AccordionContent className="whitespace-pre-wrap text-base text-foreground/90 pt-2">
+                              {s.algorithmKnowledge}
+                            </AccordionContent>
+                          </AccordionItem>
+                        </Accordion>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </div>
 
             {!isLoading && !strategyOutput && (
               <div className="flex flex-col items-center justify-center text-center p-8 border-2 border-dashed rounded-lg min-h-[400px]">

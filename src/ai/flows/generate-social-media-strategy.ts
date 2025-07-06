@@ -23,6 +23,8 @@ export type GenerateSocialMediaStrategyInput = z.infer<typeof GenerateSocialMedi
 const SocialMediaStrategySchema = z.object({
   platform: PlatformSchema,
   strategy: z.string().describe('A detailed social media strategy for the specified platform, including actionable steps and suggestions.'),
+  weeklyContentPlan: z.string().describe('A sample 7-day content plan with specific, creative ideas for posts for each day of the week (Monday to Sunday).'),
+  algorithmKnowledge: z.string().describe("Key insights into how the platform's algorithm works and how the proposed strategy leverages it for maximum reach and engagement."),
 });
 
 const GenerateSocialMediaStrategyOutputSchema = z.object({
@@ -38,19 +40,19 @@ const prompt = ai.definePrompt({
   name: 'generateSocialMediaStrategyPrompt',
   input: {schema: GenerateSocialMediaStrategyInputSchema},
   output: {schema: GenerateSocialMediaStrategyOutputSchema},
-  prompt: `You are an expert social media strategist. Given the business details, target audience, and goals, generate tailored social media strategies for each of the following platforms:
+  prompt: `You are an expert social media strategist. Given the business details, target audience, and goals, generate tailored social media strategies for each of the selected platforms.
+
+For each platform, you must provide:
+1.  **Strategy**: A detailed strategy with actionable steps and suggestions.
+2.  **Weekly Content Plan**: A sample 7-day content plan with specific ideas for posts.
+3.  **Algorithm Knowledge**: Key insights into how the platform's algorithm works and how this strategy leverages it.
 
 Business Details: {{{businessDetails}}}
 Target Audience: {{{targetAudience}}}
 Goals: {{{goals}}}
-Platforms: {{platforms}}
+Platforms: {{join platforms ", "}}
 
-For each platform, provide a detailed strategy with actionable steps and suggestions. The strategy should be tailored to the specific platform and target audience.
-
-{{#each platforms}}
-  Platform: {{this}}
-  Strategy:
-{{/each}}`,
+Please generate the output in the required JSON format with comprehensive, high-quality content for each section.`,
 });
 
 const generateSocialMediaStrategyFlow = ai.defineFlow(
