@@ -38,14 +38,6 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import {
-  Sidebar,
-  SidebarProvider,
-  SidebarInset,
-  SidebarHeader,
-  SidebarTrigger,
-  SidebarContent,
-} from "@/components/ui/sidebar";
 
 import { createStrategy } from "./actions";
 import type { GenerateSocialMediaStrategyOutput } from "@/ai/flows/generate-social-media-strategy";
@@ -181,12 +173,10 @@ export default function Home() {
   };
 
   return (
-    <SidebarProvider>
-      <Sidebar collapsible="icon">
-        <SidebarHeader>
-          <h2 className="text-xl font-semibold">1. Define Your Business</h2>
-        </SidebarHeader>
-        <SidebarContent className="p-4">
+    <main className="grid lg:grid-cols-[450px_1fr] min-h-screen">
+      <div className="flex flex-col border-r bg-muted/30 p-4 sm:p-6 lg:p-8">
+        <h2 className="text-2xl font-semibold mb-6">1. Define Your Business</h2>
+        <div className="flex-1 overflow-y-auto">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 flex flex-col h-full">
               <FormField
@@ -294,12 +284,12 @@ export default function Home() {
               </Button>
             </form>
           </Form>
-        </SidebarContent>
-      </Sidebar>
-      <SidebarInset>
-        <main className="container mx-auto px-4 py-8 md:py-12 flex-1 flex flex-col h-screen">
+        </div>
+      </div>
+      
+      <div className="flex flex-col h-screen">
+        <div className="p-6 lg:p-8 flex-1 flex flex-col overflow-y-auto">
             <header className="flex items-center gap-4 mb-4">
-                <SidebarTrigger className="md:hidden" />
                 <h1 className="text-4xl md:text-5xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary to-orange-400">
                     SocialBoost AI
                 </h1>
@@ -384,8 +374,8 @@ export default function Home() {
                     )}
                 </div>
             </div>
-        </main>
-      </SidebarInset>
-    </SidebarProvider>
+        </div>
+      </div>
+    </main>
   );
 }
