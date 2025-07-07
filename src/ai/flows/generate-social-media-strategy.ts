@@ -50,7 +50,7 @@ For each platform, you must provide:
 Business Details: {{{businessDetails}}}
 Target Audience: {{{targetAudience}}}
 Goals: {{{goals}}}
-Platforms: {{join platforms ", "}}
+Platforms: {{{platforms}}}
 
 Please generate the output in the required JSON format with comprehensive, high-quality content for each section.`,
 });
