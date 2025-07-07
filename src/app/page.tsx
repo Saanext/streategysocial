@@ -79,6 +79,7 @@ type FormData = z.infer<typeof formSchema>;
 export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isPrinting, setIsPrinting] = useState(false);
   const [strategyOutput, setStrategyOutput] = useState<GenerateSocialMediaStrategyOutput | null>(null);
   const { toast } = useToast();
   const resultsRef = useRef<HTMLDivElement>(null);
@@ -119,6 +120,7 @@ export default function Home() {
     if (!input) return;
 
     setIsDownloading(true);
+    setIsPrinting(true);
     
     const htmlEl = document.documentElement;
     const wasDark = htmlEl.classList.contains('dark');
@@ -152,12 +154,14 @@ export default function Home() {
                 htmlEl.classList.add('dark');
             }
             setIsDownloading(false);
+            setIsPrinting(false);
         }).catch(err => {
             console.error(err);
             if (wasDark) {
                 htmlEl.classList.add('dark');
             }
             setIsDownloading(false);
+            setIsPrinting(false);
             toast({
                 variant: "destructive",
                 title: "PDF Download Failed",
@@ -343,26 +347,37 @@ export default function Home() {
                           </CardTitle>
                         </CardHeader>
                         <CardContent>
-                          <Accordion type="single" collapsible defaultValue="strategy" className="w-full">
-                            <AccordionItem value="strategy">
-                              <AccordionTrigger className="text-lg font-semibold">Strategy</AccordionTrigger>
-                              <AccordionContent className="whitespace-pre-wrap text-base text-foreground/90 pt-2">
-                                {s.strategy}
-                              </AccordionContent>
-                            </AccordionItem>
-                            <AccordionItem value="content-plan">
-                              <AccordionTrigger className="text-lg font-semibold">Weekly Content Plan</AccordionTrigger>
-                              <AccordionContent className="whitespace-pre-wrap text-base text-foreground/90 pt-2">
-                                {s.weeklyContentPlan}
-                              </AccordionContent>
-                            </AccordionItem>
-                            <AccordionItem value="algorithm">
-                              <AccordionTrigger className="text-lg font-semibold">Algorithm Insights</AccordionTrigger>
-                              <AccordionContent className="whitespace-pre-wrap text-base text-foreground/90 pt-2">
-                                {s.algorithmKnowledge}
-                              </AccordionContent>
-                            </AccordionItem>
-                          </Accordion>
+                          {isPrinting ? (
+                            <div className="pt-2">
+                              <h3 className="text-lg font-semibold py-4 border-b">Strategy</h3>
+                              <div className="whitespace-pre-wrap text-base text-foreground/90 py-4">{s.strategy}</div>
+                              <h3 className="text-lg font-semibold py-4 border-b">Weekly Content Plan</h3>
+                              <div className="whitespace-pre-wrap text-base text-foreground/90 py-4">{s.weeklyContentPlan}</div>
+                              <h3 className="text-lg font-semibold py-4 border-b">Algorithm Insights</h3>
+                              <div className="whitespace-pre-wrap text-base text-foreground/90 py-4">{s.algorithmKnowledge}</div>
+                            </div>
+                          ) : (
+                            <Accordion type="single" collapsible defaultValue="strategy" className="w-full">
+                              <AccordionItem value="strategy">
+                                <AccordionTrigger className="text-lg font-semibold">Strategy</AccordionTrigger>
+                                <AccordionContent className="whitespace-pre-wrap text-base text-foreground/90 pt-2">
+                                  {s.strategy}
+                                </AccordionContent>
+                              </AccordionItem>
+                              <AccordionItem value="content-plan">
+                                <AccordionTrigger className="text-lg font-semibold">Weekly Content Plan</AccordionTrigger>
+                                <AccordionContent className="whitespace-pre-wrap text-base text-foreground/90 pt-2">
+                                  {s.weeklyContentPlan}
+                                </AccordionContent>
+                              </AccordionItem>
+                              <AccordionItem value="algorithm">
+                                <AccordionTrigger className="text-lg font-semibold">Algorithm Insights</AccordionTrigger>
+                                <AccordionContent className="whitespace-pre-wrap text-base text-foreground/90 pt-2">
+                                  {s.algorithmKnowledge}
+                                </AccordionContent>
+                              </AccordionItem>
+                            </Accordion>
+                          )}
                         </CardContent>
                       </Card>
                     ))}
