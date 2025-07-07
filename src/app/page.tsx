@@ -127,7 +127,7 @@ export default function Home() {
     }
 
     setTimeout(() => {
-        html2canvas(input, { scale: 2, windowWidth: input.scrollWidth, windowHeight: input.scrollHeight, backgroundColor: wasDark ? '#09090b' : '#ffffff' }).then(canvas => {
+        html2canvas(input, { scale: 2, windowWidth: input.scrollWidth, windowHeight: input.scrollHeight, backgroundColor: wasDark ? '#110e0c' : '#ffffff' }).then(canvas => {
             const imgData = canvas.toDataURL('image/png');
             const pdf = new jsPDF('p', 'mm', 'a4');
             const imgWidth = 210;
@@ -176,7 +176,7 @@ export default function Home() {
     <main className="min-h-screen bg-muted/30 p-4 sm:p-8">
       <div className="max-w-screen-xl mx-auto">
         <header className="text-center mb-10">
-          <h1 className="text-5xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary to-blue-400">
+          <h1 className="text-5xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary to-orange-400">
             SocialBoost AI
           </h1>
           <p className="mt-4 text-lg text-muted-foreground max-w-3xl mx-auto">
