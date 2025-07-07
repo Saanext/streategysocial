@@ -5,7 +5,6 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import jsPDF from "jspdf";
-import html2canvas from "html2canvas";
 import {
   Building2,
   Users,
@@ -79,7 +78,6 @@ type FormData = z.infer<typeof formSchema>;
 export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
-  const [isPrinting, setIsPrinting] = useState(false);
   const [strategyOutput, setStrategyOutput] = useState<GenerateSocialMediaStrategyOutput | null>(null);
   const { toast } = useToast();
   const resultsRef = useRef<HTMLDivElement>(null);
@@ -116,59 +114,79 @@ export default function Home() {
   };
 
   const handleDownloadPdf = () => {
-    const input = resultsRef.current;
-    if (!input) return;
-
+    if (!strategyOutput) return;
     setIsDownloading(true);
-    setIsPrinting(true);
-    
-    const htmlEl = document.documentElement;
-    const wasDark = htmlEl.classList.contains('dark');
-    if (wasDark) {
-        htmlEl.classList.remove('dark');
-    }
 
-    setTimeout(() => {
-        html2canvas(input, { scale: 2, windowWidth: input.scrollWidth, windowHeight: input.scrollHeight, backgroundColor: wasDark ? '#110e0c' : '#ffffff' }).then(canvas => {
-            const imgData = canvas.toDataURL('image/png');
-            const pdf = new jsPDF('p', 'mm', 'a4');
-            const imgWidth = 210;
-            const pageHeight = 297;
-            const imgHeight = canvas.height * imgWidth / canvas.width;
-            let heightLeft = imgHeight;
-            let position = 0;
+    try {
+        const doc = new jsPDF('p', 'mm', 'a4');
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const pageHeight = doc.internal.pageSize.getHeight();
+        const margin = 15;
+        const contentWidth = pageWidth - margin * 2;
+        let y = margin;
 
-            pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-            heightLeft -= pageHeight;
-
-            while (heightLeft >= 0) {
-                position = heightLeft - imgHeight;
-                pdf.addPage();
-                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-                heightLeft -= pageHeight;
+        const checkPageBreak = (heightNeeded: number) => {
+            if (y + heightNeeded > pageHeight - margin) {
+                doc.addPage();
+                y = margin;
             }
+        };
 
-            pdf.save('social-media-strategy.pdf');
+        // --- Title ---
+        doc.setFontSize(22);
+        doc.setFont(undefined, 'bold');
+        doc.text('Your AI-Generated Social Media Strategy', pageWidth / 2, y, { align: 'center' });
+        y += 15;
+
+        // --- Main content ---
+        strategyOutput.strategies.forEach((s, index) => {
+            const platformName = s.platform === 'x' ? 'X (Twitter)' : s.platform.charAt(0).toUpperCase() + s.platform.slice(1);
             
-            if (wasDark) {
-                htmlEl.classList.add('dark');
+            checkPageBreak(20);
+            doc.setFontSize(18);
+            doc.setFont(undefined, 'bold');
+            doc.text(`${platformName} Strategy`, margin, y);
+            y += 12;
+
+            const addSection = (title: string, content: string) => {
+                checkPageBreak(15);
+                doc.setFontSize(14);
+                doc.setFont(undefined, 'bold');
+                doc.text(title, margin, y);
+                y += 7;
+
+                doc.setFontSize(11);
+                doc.setFont(undefined, 'normal');
+                const textLines = doc.splitTextToSize(content, contentWidth);
+                checkPageBreak(textLines.length * 5 + 5);
+                doc.text(textLines, margin, y);
+                y += textLines.length * 5 + 5;
+            };
+
+            addSection('Strategy', s.strategy);
+            addSection('Weekly Content Plan', s.weeklyContentPlan);
+            addSection('Algorithm Insights', s.algorithmKnowledge);
+            
+            if (index < strategyOutput.strategies.length - 1) {
+                y += 5;
+                checkPageBreak(10);
+                doc.setDrawColor(221, 221, 221);
+                doc.line(margin, y, pageWidth - margin, y);
+                y += 10;
             }
-            setIsDownloading(false);
-            setIsPrinting(false);
-        }).catch(err => {
-            console.error(err);
-            if (wasDark) {
-                htmlEl.classList.add('dark');
-            }
-            setIsDownloading(false);
-            setIsPrinting(false);
-            toast({
-                variant: "destructive",
-                title: "PDF Download Failed",
-                description: "An error occurred while generating the PDF.",
-            });
         });
-    }, 250);
+
+        doc.save('social-media-strategy.pdf');
+    } catch (err) {
+        console.error(err);
+        toast({
+            variant: "destructive",
+            title: "PDF Download Failed",
+            description: "An error occurred while generating the PDF.",
+        });
+    } finally {
+        setIsDownloading(false);
+    }
   };
 
   const getPlatformIcon = (platform: string) => {
@@ -347,16 +365,6 @@ export default function Home() {
                           </CardTitle>
                         </CardHeader>
                         <CardContent>
-                          {isPrinting ? (
-                            <div className="pt-2">
-                              <h3 className="text-lg font-semibold py-4 border-b">Strategy</h3>
-                              <div className="whitespace-pre-wrap text-base text-foreground/90 py-4">{s.strategy}</div>
-                              <h3 className="text-lg font-semibold py-4 border-b">Weekly Content Plan</h3>
-                              <div className="whitespace-pre-wrap text-base text-foreground/90 py-4">{s.weeklyContentPlan}</div>
-                              <h3 className="text-lg font-semibold py-4 border-b">Algorithm Insights</h3>
-                              <div className="whitespace-pre-wrap text-base text-foreground/90 py-4">{s.algorithmKnowledge}</div>
-                            </div>
-                          ) : (
                             <Accordion type="single" collapsible defaultValue="strategy" className="w-full">
                               <AccordionItem value="strategy">
                                 <AccordionTrigger className="text-lg font-semibold">Strategy</AccordionTrigger>
@@ -377,7 +385,6 @@ export default function Home() {
                                 </AccordionContent>
                               </AccordionItem>
                             </Accordion>
-                          )}
                         </CardContent>
                       </Card>
                     ))}
